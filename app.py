@@ -1,24 +1,31 @@
-from flask import Flask
-from flask import render_template
-from flask import request
-from flask import redirect
+from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import pytz
+from flask_login import UserMixin,LoginManager
+import os
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
-db = SQLAlchemy(app)
+app=Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///blog.db'
+app.config['SECRET_KEY']=os.urandom(24)
+db=SQLAlchemy(app)
+login_manager=LoginManager()
+login_manager.init_app(app)
 
 class Post(db.Model):
-    id=db.Column(db.Integer,primary_key=True)
-    title=db.Column(db.String(50),nullable=False)
-    body=db.Column(db.String(300),nullable=False)
-    created_at=db.Column(db.DateTime,nullable=False,default=datetime.now(pytz.timezone("Asia/Tokyo")))
+    id = db.Column(db.Integer,primary_key=True)
+    title = db.Column(db.String(50),nullable=False)
+    body = db.Column(db.String(300),nullable=False)
+    created_at = db.Column(db.DateTime,nullable=False,default=datetime.now(pytz.timezone("Asia/Tokyo")))
 
-@app.route("/",methods=["GET"])  #変更
+class User(UserMixin,db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    username = db.Column(db.String(20),unique=True)
+    password = db.Column(db.String(20))
+
+@app.route("/",methods=["GET"])
 def index():
-    posts = Post.query.all()   #DBに登録した内容をすべて取得する
+    posts = Post.query.all() 
     return render_template("index.html",posts=posts)
 
 @app.route("/article1")
@@ -43,7 +50,7 @@ def create():
     else:
         return render_template("create.html")
 
-@app.route("/<int:id>/update",methods=["GET","POST"])   #DBのIDがルーティングの部分に持ってこれるように指定する
+@app.route("/<int:id>/update",methods=["GET","POST"]) 
 def update(id):
     post=Post.query.get(id)
     if request.method == "GET":
